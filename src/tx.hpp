@@ -105,7 +105,7 @@ private:
     // tx->rx keypair
     uint8_t tx_secretkey[crypto_box_SECRETKEYBYTES];
     uint8_t rx_publickey[crypto_box_PUBLICKEYBYTES];
-    uint8_t session_key[crypto_aead_chacha20poly1305_KEYBYTES];
+    uint8_t session_key[crypto_aead_aes256gcm_KEYBYTES];
     uint8_t session_packet[MAX_SESSION_PACKET_SIZE];
     uint16_t session_packet_size;
     std::vector<tags_item_t> tags;

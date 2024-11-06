@@ -34,11 +34,13 @@
 #include <limits.h>
 #include <sys/ioctl.h>
 #include <linux/random.h>
+#include <functional>
 
 extern "C"
 {
 #include "ieee80211_radiotap.h"
 #include "fec.h"
+#include "aes.h"
 }
 
 #include <string>
@@ -49,6 +51,12 @@ extern "C"
 
 using namespace std;
 
+static std::function<int(unsigned char *, unsigned long long *,
+                            unsigned char *,
+                            const unsigned char *, unsigned long long,
+                            const unsigned char *, unsigned long long,
+                            unsigned char *,
+                            unsigned char *)> decryptor;
 
 Receiver::Receiver(const char *wlan, int wlan_idx, uint32_t channel_id, BaseAggregator *agg, int rcv_buf_size) : wlan_idx(wlan_idx), agg(agg)
 {
@@ -576,7 +584,7 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
     switch(buf[0])
     {
     case WFB_PACKET_DATA:
-        if(size < sizeof(wblock_hdr_t) + crypto_aead_chacha20poly1305_ABYTES + sizeof(wpacket_hdr_t))
+        if(size < sizeof(wblock_hdr_t) + crypto_aead_aes256gcm_ABYTES + sizeof(wpacket_hdr_t))
         {
             WFB_ERR("Short packet (fec header)\n");
             count_p_bad += 1;
@@ -674,12 +682,12 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
     unsigned long long decrypted_len;
     wblock_hdr_t *block_hdr = (wblock_hdr_t*)buf;
 
-    if (crypto_aead_chacha20poly1305_decrypt(decrypted, &decrypted_len,
-                                             NULL,
-                                             buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
-                                             buf,
-                                             sizeof(wblock_hdr_t),
-                                             (uint8_t*)(&(block_hdr->data_nonce)), session_key) != 0)
+    if (decryptor(decrypted, &decrypted_len,
+                    NULL,
+                    buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
+                    buf, sizeof(wblock_hdr_t),
+                    block_hdr->aes_nonce,
+                    session_key) != 0)
     {
         WFB_ERR("Unable to decrypt packet #0x%" PRIx64 "\n", be64toh(block_hdr->data_nonce));
         count_p_dec_err += 1;
@@ -1098,6 +1106,13 @@ int main(int argc, char* const *argv)
     {
         WFB_ERR("Libsodium init failed\n");
         return 1;
+    }
+    if (crypto_aead_aes256gcm_is_available() == 1) {
+        fprintf(stderr, "AES available on this CPU\n");
+        decryptor = crypto_aead_aes256gcm_decrypt;
+    }else{
+        fprintf(stderr, "HW AES not available on this CPU\n");
+        decryptor = sw_crypto_aead_aes256gcm_decrypt;
     }
 
     try
