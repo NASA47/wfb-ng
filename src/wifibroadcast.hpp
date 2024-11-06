@@ -227,7 +227,7 @@ typedef struct {
     uint8_t fec_type; // Now only supported type is WFB_FEC_VDM_RS
     uint8_t k;   // FEC k
     uint8_t n;   // FEC n
-    uint8_t session_key[crypto_aead_chacha20poly1305_KEYBYTES];
+    uint8_t session_key[crypto_aead_aes256gcm_KEYBYTES];
     uint8_t tags[];  // Optional TLV attributes
 } __attribute__ ((packed)) wsession_data_t;
 
@@ -243,6 +243,7 @@ typedef struct {
 typedef struct {
     uint8_t packet_type;
     uint64_t data_nonce;  // big endian, data_nonce = (block_idx << 8) + fragment_idx
+    unsigned char aes_nonce[crypto_aead_aes256gcm_NPUBBYTES];
 }  __attribute__ ((packed)) wblock_hdr_t;
 
 // Plain data packet after FEC decode
@@ -253,8 +254,8 @@ typedef struct {
 }  __attribute__ ((packed)) wpacket_hdr_t;
 
 
-#define MAX_PAYLOAD_SIZE (WIFI_MTU - sizeof(ieee80211_header) - sizeof(wblock_hdr_t) - crypto_aead_chacha20poly1305_ABYTES - sizeof(wpacket_hdr_t))
-#define MAX_FEC_PAYLOAD  (WIFI_MTU - sizeof(ieee80211_header) - sizeof(wblock_hdr_t) - crypto_aead_chacha20poly1305_ABYTES)
+#define MAX_PAYLOAD_SIZE (WIFI_MTU - sizeof(ieee80211_header) - sizeof(wblock_hdr_t) - crypto_aead_aes256gcm_ABYTES - sizeof(wpacket_hdr_t))
+#define MAX_FEC_PAYLOAD  (WIFI_MTU - sizeof(ieee80211_header) - sizeof(wblock_hdr_t) - crypto_aead_aes256gcm_ABYTES)
 #define MAX_FORWARDER_PACKET_SIZE (WIFI_MTU - sizeof(ieee80211_header))
 #define MAX_SESSION_PACKET_SIZE (WIFI_MTU - sizeof(ieee80211_header))
 #define MIN_DISTRIBUTION_PACKET_SIZE (sizeof(uint32_t) + sizeof(radiotap_header_ht) + sizeof(ieee80211_header))   // ht hdr < vht hdr
