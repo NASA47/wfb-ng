@@ -137,7 +137,7 @@ void Transmitter::init_session(int k, int n)
     fragment_idx = 0;
 
     // init session key
-    randombytes_buf(session_key, sizeof(session_key));
+    crypto_aead_aes256gcm_keygen(session_key);
 
     // fill packet header
     wsession_hdr_t *session_hdr = (wsession_hdr_t *)session_packet;
@@ -550,12 +550,14 @@ void Transmitter::send_block_fragment(size_t packet_size)
 
     block_hdr->packet_type = WFB_PACKET_DATA;
     block_hdr->data_nonce = htobe64(((block_idx & BLOCK_IDX_MASK) << 8) + fragment_idx);
-
+    
+    // generate AES nonce
+    randombytes_buf(block_hdr->aes_nonce, sizeof block_hdr->aes_nonce);
     // encrypted payload
-    if (crypto_aead_chacha20poly1305_encrypt(ciphertext + sizeof(wblock_hdr_t), &ciphertext_len,
-                                             block[fragment_idx], packet_size,
-                                             (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
-                                             NULL, (uint8_t*)(&(block_hdr->data_nonce)), session_key) < 0)
+    if (crypto_aead_aes256gcm_encrypt(ciphertext + sizeof(wblock_hdr_t), &ciphertext_len,
+                                      block[fragment_idx], packet_size,
+                                      (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
+                                      NULL, block_hdr->aes_nonce, session_key) < 0)
     {
         throw runtime_error("Unable to encrypt packet!");
     }
@@ -1642,6 +1644,13 @@ int main(int argc, char * const *argv)
     {
         fprintf(stderr, "Libsodium init failed\n");
         return 1;
+    }
+    if (crypto_aead_aes256gcm_is_available() == 0) {
+        fprintf(stderr, "AES not available on this CPU\n");
+        return 1;
+    }
+    else{
+        fprintf(stderr, "AES available on this CPU\n");
     }
 
     try

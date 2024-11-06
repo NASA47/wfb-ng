@@ -194,7 +194,7 @@ public:
     uint32_t count_b_outgoing;
 
 private:
-    Aggregator(const Aggregator&);
+        Aggregator(const Aggregator&);
     Aggregator& operator=(const Aggregator&);
 
     void init_fec(int k, int n);
@@ -224,7 +224,7 @@ private:
     // rx->tx keypair
     uint8_t rx_secretkey[crypto_box_SECRETKEYBYTES];
     uint8_t tx_publickey[crypto_box_PUBLICKEYBYTES];
-    uint8_t session_key[crypto_aead_chacha20poly1305_KEYBYTES];
+    uint8_t session_key[crypto_aead_aes256gcm_KEYBYTES];
 };
 
 class Receiver

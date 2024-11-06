@@ -579,7 +579,7 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
     switch(buf[0])
     {
     case WFB_PACKET_DATA:
-        if(size < sizeof(wblock_hdr_t) + crypto_aead_chacha20poly1305_ABYTES + sizeof(wpacket_hdr_t))
+        if(size < sizeof(wblock_hdr_t) + crypto_aead_aes256gcm_ABYTES + sizeof(wpacket_hdr_t))
         {
             fprintf(stderr, "Short packet (fec header)\n");
             count_p_bad += 1;
@@ -678,12 +678,12 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
     unsigned long long decrypted_len;
     wblock_hdr_t *block_hdr = (wblock_hdr_t*)buf;
 
-    if (crypto_aead_chacha20poly1305_decrypt(decrypted, &decrypted_len,
-                                             NULL,
-                                             buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
-                                             buf,
-                                             sizeof(wblock_hdr_t),
-                                             (uint8_t*)(&(block_hdr->data_nonce)), session_key) != 0)
+    if (crypto_aead_aes256gcm_decrypt(decrypted, &decrypted_len,
+                                      NULL,
+                                      buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
+                                      buf,
+                                      sizeof(wblock_hdr_t),
+                                      block_hdr->aes_nonce, session_key) != 0)
     {
         fprintf(stderr, "Unable to decrypt packet #0x%" PRIx64 "\n", be64toh(block_hdr->data_nonce));
         count_p_dec_err += 1;
