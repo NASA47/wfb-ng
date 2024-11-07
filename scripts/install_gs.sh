@@ -21,7 +21,7 @@ apt install python3-all python3-all-dev libpcap-dev libevent-dev python3-pip pyt
 make deb
 
 # Create key and copy to right location
-./wfb_keygen
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/; ./wfb_keygen
 mv gs.key /etc/gs.key
 
 # Install
