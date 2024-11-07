@@ -29,7 +29,7 @@ $(ENV):
 all_bin: wfb_rx wfb_tx wfb_keygen wfb_tx_cmd wfb_tun
 
 gs.key: wfb_keygen
-	@if ! [ -f gs.key ]; then ./wfb_keygen; fi
+	@if ! [ -f gs.key ]; then export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/; ./wfb_keygen; fi
 
 src/%.o: src/%.c src/*.h
 	$(CC) $(_CFLAGS) -std=gnu99 -c -o $@ $<
