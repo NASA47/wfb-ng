@@ -17,7 +17,7 @@ STDEB ?= "git+https://github.com/svpcom/stdeb"
 
 export VERSION COMMIT SOURCE_DATE_EPOCH
 
-_LDFLAGS := $(LDFLAGS) -lrt -lsodium
+_LDFLAGS := $(LDFLAGS) -lrt -lsodium -lcrypto
 _CFLAGS := $(CFLAGS) -Wall -O2 -fno-strict-aliasing -DWFB_VERSION='"$(VERSION)-$(shell /bin/bash -c '_tmp=$(COMMIT); echo $${_tmp::8}')"'
 
 all: all_bin gs.key test
@@ -37,10 +37,10 @@ src/%.o: src/%.c src/*.h
 src/%.o: src/%.cpp src/*.hpp src/*.h
 	$(CXX) $(_CFLAGS) -std=gnu++11 -c -o $@ $<
 
-wfb_rx: src/rx.o src/radiotap.o src/fec.o src/wifibroadcast.o
+wfb_rx: src/rx.o src/radiotap.o src/fec.o src/wifibroadcast.o src/aes.o
 	$(CXX) -o $@ $^ $(_LDFLAGS) -lpcap
 
-wfb_tx: src/tx.o src/fec.o src/wifibroadcast.o
+wfb_tx: src/tx.o src/fec.o src/wifibroadcast.o src/aes.o
 	$(CXX) -o $@ $^ $(_LDFLAGS)
 
 wfb_keygen: src/keygen.o

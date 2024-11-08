@@ -43,6 +43,7 @@
 extern "C"
 {
 #include "fec.h"
+#include "aes.h"
 }
 
 using namespace std;
@@ -554,6 +555,7 @@ void Transmitter::send_block_fragment(size_t packet_size)
     // generate AES nonce
     randombytes_buf(block_hdr->aes_nonce, sizeof block_hdr->aes_nonce);
     // encrypted payload
+#if 0
     if (crypto_aead_aes256gcm_encrypt(ciphertext + sizeof(wblock_hdr_t), &ciphertext_len,
                                       block[fragment_idx], packet_size,
                                       (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
@@ -561,8 +563,21 @@ void Transmitter::send_block_fragment(size_t packet_size)
     {
         throw runtime_error("Unable to encrypt packet!");
     }
-
-    inject_packet(ciphertext, sizeof(wblock_hdr_t) + ciphertext_len);
+#else
+    unsigned char tag[16];
+    ciphertext_len = gcm_encrypt(block[fragment_idx], packet_size,
+                                    (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
+                                    session_key,
+                                    block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
+                                    ciphertext + sizeof(wblock_hdr_t),
+                                    tag);
+    if (ciphertext_len <= 0 )
+    {
+        throw runtime_error("Unable to encrypt packet!");
+    }
+    memcpy(ciphertext + sizeof(wblock_hdr_t) + ciphertext_len, tag, sizeof tag);
+#endif
+    inject_packet(ciphertext, sizeof(wblock_hdr_t) + ciphertext_len + sizeof tag);
 }
 
 void Transmitter::send_session_key(void)

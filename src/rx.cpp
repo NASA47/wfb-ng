@@ -39,6 +39,7 @@ extern "C"
 {
 #include "ieee80211_radiotap.h"
 #include "fec.h"
+#include "aes.h"
 }
 
 #include <string>
@@ -677,7 +678,7 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
     uint8_t decrypted[MAX_FEC_PAYLOAD];
     unsigned long long decrypted_len;
     wblock_hdr_t *block_hdr = (wblock_hdr_t*)buf;
-
+#if 0
     if (crypto_aead_aes256gcm_decrypt(decrypted, &decrypted_len,
                                       NULL,
                                       buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
@@ -689,6 +690,22 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
         count_p_dec_err += 1;
         return;
     }
+#else
+    unsigned char tag[16];
+    const int ciphertext_len = size - sizeof(wblock_hdr_t) - sizeof tag;
+    decrypted_len = gcm_decrypt(buf + sizeof(wblock_hdr_t), ciphertext_len,
+                                buf, sizeof(wblock_hdr_t),
+                                buf + sizeof(wblock_hdr_t) + ciphertext_len,
+                                session_key,
+                                block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
+                                decrypted);
+    if (decrypted_len <= 0)
+    {
+        fprintf(stderr, "Unable to decrypt packet #0x%" PRIx64 "\n", be64toh(block_hdr->data_nonce));
+        count_p_dec_err += 1;
+        return;
+    }
+#endif
 
     count_p_dec_ok += 1;
     log_rssi(sockaddr, wlan_idx, antenna, rssi, noise, freq, mcs_index, bandwidth);
