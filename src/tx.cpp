@@ -1661,8 +1661,7 @@ int main(int argc, char * const *argv)
         return 1;
     }
     if (crypto_aead_aes256gcm_is_available() == 0) {
-        fprintf(stderr, "AES not available on this CPU\n");
-        return 1;
+        fprintf(stderr, "HW AES not available on this CPU\n");
     }
     else{
         fprintf(stderr, "AES available on this CPU\n");
