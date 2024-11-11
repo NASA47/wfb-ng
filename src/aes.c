@@ -101,8 +101,7 @@ int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
 
 
 int gcm_decrypt(const unsigned char *ciphertext, int ciphertext_len,
-                const unsigned char *aad, int aad_len,
-                const unsigned char *tag,
+                const unsigned char *aad, int aad_len,                
                 unsigned char *key,
                 unsigned char *iv, int iv_len,
                 unsigned char *plaintext)
@@ -112,6 +111,9 @@ int gcm_decrypt(const unsigned char *ciphertext, int ciphertext_len,
     int plaintext_len;
     int ret;
 
+    const int tag_len = 16;   
+    ciphertext_len -= tag_len;
+    
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
         handleErrors();
@@ -144,7 +146,7 @@ int gcm_decrypt(const unsigned char *ciphertext, int ciphertext_len,
     plaintext_len = len;
 
     /* Set expected tag value. Works in OpenSSL 1.0.1d and later */
-    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, tag))
+    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_len, ciphertext + ciphertext_len))
         handleErrors();
 
     /*
