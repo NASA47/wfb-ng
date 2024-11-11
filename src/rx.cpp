@@ -691,9 +691,7 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
         return;
     }
 #else
-    unsigned char tag[16];
-    const int ciphertext_len = size - sizeof(wblock_hdr_t) - sizeof tag;
-    decrypted_len = gcm_decrypt(buf + sizeof(wblock_hdr_t), ciphertext_len,
+    decrypted_len = gcm_decrypt(buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
                                 buf, sizeof(wblock_hdr_t),                                
                                 session_key,
                                 block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
