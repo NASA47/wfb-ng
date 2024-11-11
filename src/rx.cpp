@@ -691,11 +691,11 @@ void Aggregator::process_packet(const uint8_t *buf, size_t size, uint8_t wlan_id
         return;
     }
 #else
-    if (gcm_decrypt(buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
-                                buf, sizeof(wblock_hdr_t),                                
-                                session_key,
-                                block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
-                                decrypted, &decrypted_len) != 0)
+    if (sw_crypto_aead_aes256gcm_decrypt(buf + sizeof(wblock_hdr_t), size - sizeof(wblock_hdr_t),
+                                            buf, sizeof(wblock_hdr_t),
+                                            session_key,
+                                            block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
+                                            decrypted, &decrypted_len) != 0)
     {
         fprintf(stderr, "Unable to decrypt packet #0x%" PRIx64 "\n", be64toh(block_hdr->data_nonce));
         count_p_dec_err += 1;

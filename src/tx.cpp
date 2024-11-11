@@ -564,12 +564,11 @@ void Transmitter::send_block_fragment(size_t packet_size)
         throw runtime_error("Unable to encrypt packet!");
     }
 #else
-    
-    if (gcm_encrypt(block[fragment_idx], packet_size,
-                                    (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
-                                    session_key,
-                                    block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
-                                    ciphertext + sizeof(wblock_hdr_t), &ciphertext_len) < 0)
+    if (sw_crypto_aead_aes256gcm_encrypt(block[fragment_idx], packet_size,
+                                            (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
+                                            session_key,
+                                            block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
+                                            ciphertext + sizeof(wblock_hdr_t), &ciphertext_len) < 0)
     {
         throw runtime_error("Unable to encrypt packet!");
     }
