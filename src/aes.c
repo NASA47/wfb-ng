@@ -11,15 +11,16 @@ int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
                 unsigned char *aad, int aad_len,
                 unsigned char *key,
                 unsigned char *iv, int iv_len,
-                unsigned char *ciphertext,
-                unsigned char *tag)
+                unsigned char *ciphertext)
 {
     EVP_CIPHER_CTX *ctx;
 
     int len;
 
     int ciphertext_len;
-
+    
+    const int tag_len = 16;
+    unsigned char tag[tag_len];
 
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
@@ -63,8 +64,11 @@ int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
     ciphertext_len += len;
 
     /* Get the tag */
-    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag))
+    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_len, tag))
         handleErrors();
+
+    memcpy(ciphertext + ciphertext_len, tag, tag_len);
+    ciphertext_len += tag_len;
 
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
