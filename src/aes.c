@@ -11,69 +11,92 @@ int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
                 unsigned char *aad, int aad_len,
                 unsigned char *key,
                 unsigned char *iv, int iv_len,
-                unsigned char *ciphertext)
+                unsigned char *ciphertext,
+                long long unsigned int *ciphertext_len)
 {
     EVP_CIPHER_CTX *ctx;
 
     int len;
 
-    int ciphertext_len;
-    
     const int tag_len = 16;
     unsigned char tag[tag_len];
 
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
-        handleErrors();
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
     /* Initialise the encryption operation. */
     if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
-        handleErrors();
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
     /*
      * Set IV length if default 12 bytes (96 bits) is not appropriate
      */
     if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
-        handleErrors();
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
     /* Initialise key and IV */
     if(1 != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv))
-        handleErrors();
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
     /*
      * Provide any AAD data. This can be called zero or more times as
      * required
      */
     if(1 != EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len))
-        handleErrors();
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
     /*
      * Provide the message to be encrypted, and obtain the encrypted output.
      * EVP_EncryptUpdate can be called multiple times if necessary
      */
     if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
-        handleErrors();
-    ciphertext_len = len;
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+    *ciphertext_len = len;
 
     /*
      * Finalise the encryption. Normally ciphertext bytes may be written at
      * this stage, but this does not occur in GCM mode
      */
     if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
-        handleErrors();
-    ciphertext_len += len;
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+    *ciphertext_len += len;
 
     /* Get the tag */
     if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_len, tag))
-        handleErrors();
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-    memcpy(ciphertext + ciphertext_len, tag, tag_len);
-    ciphertext_len += tag_len;
+    memcpy(ciphertext + *ciphertext_len, tag, tag_len);
+    *ciphertext_len += tag_len;
 
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    return ciphertext_len;
+    return 0;
 }
 
 

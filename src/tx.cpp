@@ -565,12 +565,11 @@ void Transmitter::send_block_fragment(size_t packet_size)
     }
 #else
     
-    ciphertext_len = gcm_encrypt(block[fragment_idx], packet_size,
+    if (gcm_encrypt(block[fragment_idx], packet_size,
                                     (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
                                     session_key,
                                     block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
-                                    ciphertext + sizeof(wblock_hdr_t));
-    if (ciphertext_len <= 0 )
+                                    ciphertext + sizeof(wblock_hdr_t), &ciphertext_len) < 0)
     {
         throw runtime_error("Unable to encrypt packet!");
     }
