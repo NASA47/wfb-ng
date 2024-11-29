@@ -1,66 +1,77 @@
 #include "aes.h"
 
-int sw_crypto_aead_aes256gcm_encrypt(unsigned char *plaintext, int plaintext_len,
-                                        unsigned char *aad, int aad_len,
-                                        unsigned char *key,
-                                        unsigned char *iv, int iv_len,
-                                        unsigned char *ciphertext, long long unsigned int *ciphertext_len)
+static const int AES_SUCCESS = 0;
+static const int AES_FAIL = -1;
+
+static const int OPENSSL_SUCCESS = 1;
+
+/* Current implementation of WFB-NG uses hardcoded 12 bytes (96 bits) IV length
+ * and hardcoded 16 bytes (128 bits) TAG length.
+ */
+static const int IV_LEN = 12;
+static const int TAG_LEN = 16;
+
+static void handle_errors(EVP_CIPHER_CTX *ctx)
 {
-    EVP_CIPHER_CTX *ctx;
+    ERR_print_errors_fp(stderr);
+    EVP_CIPHER_CTX_free(ctx);
+}
 
-    int len;
-
-    const int tag_len = 16;
-    unsigned char tag[tag_len];
-
+int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsigned int *ciphertext_len,
+                                        unsigned char *plaintext, int plaintext_len,
+                                        unsigned char *aad, int aad_len,
+                                        const unsigned char *nsec,
+                                        unsigned char *iv,
+                                        unsigned char *key)
+{
     /* Create and initialise the context */
-    if(!(ctx = EVP_CIPHER_CTX_new()))
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if(!ctx)
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /* Initialise the encryption operation. */
-    if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
+    if(OPENSSL_SUCCESS != EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
-    /*
-     * Set IV length if default 12 bytes (96 bits) is not appropriate
-     */
-    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
+    /* Set IV length */
+    if(OPENSSL_SUCCESS != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /* Initialise key and IV */
-    if(1 != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv))
+    if(OPENSSL_SUCCESS != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /*
      * Provide any AAD data. This can be called zero or more times as
      * required
      */
-    if(1 != EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len))
+    int len = 0;
+    if(OPENSSL_SUCCESS != EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /*
      * Provide the message to be encrypted, and obtain the encrypted output.
      * EVP_EncryptUpdate can be called multiple times if necessary
      */
-    if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
+    if(OPENSSL_SUCCESS != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
     *ciphertext_len = len;
 
@@ -68,114 +79,112 @@ int sw_crypto_aead_aes256gcm_encrypt(unsigned char *plaintext, int plaintext_len
      * Finalise the encryption. Normally ciphertext bytes may be written at
      * this stage, but this does not occur in GCM mode
      */
-    if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
+    if(OPENSSL_SUCCESS != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
     *ciphertext_len += len;
 
     /* Get the tag */
-    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_len, tag))
+    unsigned char tag[TAG_LEN];
+    if(OPENSSL_SUCCESS != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, TAG_LEN, tag))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
-    memcpy(ciphertext + *ciphertext_len, tag, tag_len);
-    *ciphertext_len += tag_len;
+    memcpy(ciphertext + *ciphertext_len, tag, TAG_LEN);
+    *ciphertext_len += TAG_LEN;
 
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    return 0;
+    return AES_SUCCESS;
 }
 
 
-int sw_crypto_aead_aes256gcm_decrypt(const unsigned char *ciphertext, int ciphertext_len,
-                                        const unsigned char *aad, int aad_len,                
-                                        unsigned char *key,
-                                        unsigned char *iv, int iv_len,
-                                        unsigned char *plaintext, unsigned long long *plaintext_len)
+int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
+                                        unsigned char *nsec,
+                                        const unsigned char *ciphertext, unsigned long long ciphertext_len,
+                                        const unsigned char *aad, unsigned long long aad_len,
+                                        unsigned char *iv,
+                                        unsigned char *key)
 {
-    EVP_CIPHER_CTX *ctx;
-    int len;
-    int ret;
-
-    const int tag_len = 16;   
-    ciphertext_len -= tag_len;
-    
     /* Create and initialise the context */
-    if(!(ctx = EVP_CIPHER_CTX_new()))
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if(!ctx)
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /* Initialise the decryption operation. */
-    if(!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
+    if(OPENSSL_SUCCESS != EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
-    /* Set IV length. Not necessary if this is 12 bytes (96 bits) */
-    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
+    /* Set IV length. */
+    if(OPENSSL_SUCCESS != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_LEN, NULL))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /* Initialise key and IV */
-    if(!EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv))
+    if(OPENSSL_SUCCESS != EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /*
      * Provide any AAD data. This can be called zero or more times as
      * required
      */
-    if(!EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len))
+    int len = 0;
+    if(OPENSSL_SUCCESS != EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /*
      * Provide the message to be decrypted, and obtain the plaintext output.
      * EVP_DecryptUpdate can be called multiple times if necessary
      */
-    if(!EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
+    ciphertext_len -= TAG_LEN;
+    if(OPENSSL_SUCCESS != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
     *plaintext_len = len;
 
     /* Set expected tag value. Works in OpenSSL 1.0.1d and later */
-    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_len, ciphertext + ciphertext_len))
+    if(OPENSSL_SUCCESS != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_LEN, (void*)(ciphertext + ciphertext_len)))
     {
-        ERR_print_errors_fp(stderr);
-        return -1;
+        handle_errors(ctx);
+        return AES_FAIL;
     }
 
     /*
      * Finalise the decryption. A positive return value indicates success,
      * anything else is a failure - the plaintext is not trustworthy.
      */
-    ret = EVP_DecryptFinal_ex(ctx, plaintext + len, &len);
+    if(0 >= EVP_DecryptFinal_ex(ctx, plaintext + len, &len))
+    {
+        /* Verify failed */
+        handle_errors(ctx);
+        return AES_FAIL;
+    }
+
+    *plaintext_len += len;
 
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    if(ret <= 0) {
-        /* Verify failed */
-        return -1;
-    }
-    
-    *plaintext_len += len;
-
-    return 0;
+    return AES_SUCCESS;
 }
