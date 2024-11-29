@@ -1104,7 +1104,7 @@ int main(int argc, char* const *argv)
     }    
     if (crypto_aead_aes256gcm_is_available() == 1) {
         fprintf(stderr, "AES available on this CPU\n");
-        decryptor = crypto_aead_aes256gcm_decrypt;        
+        decryptor = crypto_aead_aes256gcm_decrypt;
     }else{
         fprintf(stderr, "HW AES not available on this CPU\n");
         decryptor = sw_crypto_aead_aes256gcm_decrypt;
