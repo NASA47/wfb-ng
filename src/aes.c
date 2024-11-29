@@ -93,11 +93,12 @@ int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsign
 }
 
 
-int sw_crypto_aead_aes256gcm_decrypt(const unsigned char *ciphertext, int ciphertext_len,
-                                        const unsigned char *aad, int aad_len,                
-                                        unsigned char *key,
-                                        unsigned char *iv, int iv_len,
-                                        unsigned char *plaintext, unsigned long long *plaintext_len)
+int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
+                                        unsigned char *nsec,
+                                        const unsigned char *ciphertext, unsigned long long ciphertext_len,
+                                        const unsigned char *aad, unsigned long long aad_len,                
+                                        unsigned char *iv,
+                                        unsigned char *key)
 {
     EVP_CIPHER_CTX *ctx;
     int len;
@@ -120,12 +121,12 @@ int sw_crypto_aead_aes256gcm_decrypt(const unsigned char *ciphertext, int cipher
         return -1;
     }
 
-    /* Set IV length. Not necessary if this is 12 bytes (96 bits) */
-    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
-    {
-        ERR_print_errors_fp(stderr);
-        return -1;
-    }
+    // /* Set IV length. Not necessary if this is 12 bytes (96 bits) */
+    // if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL))
+    // {
+    //     ERR_print_errors_fp(stderr);
+    //     return -1;
+    // }
 
     /* Initialise key and IV */
     if(!EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv))

@@ -9,8 +9,9 @@ int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsign
                                         const unsigned char *nsec,
                                         unsigned char *iv,
                                         unsigned char *key);
-int sw_crypto_aead_aes256gcm_decrypt(const unsigned char *ciphertext, int ciphertext_len,
-                                        const unsigned char *aad, int aad_len,                
-                                        unsigned char *key,
-                                        unsigned char *iv, int iv_len,
-                                        unsigned char *plaintext, unsigned long long *plaintext_len);
+int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
+                                        unsigned char *nsec,
+                                        const unsigned char *ciphertext, unsigned long long ciphertext_len,
+                                        const unsigned char *aad, unsigned long long aad_len,                
+                                        unsigned char *iv,
+                                        unsigned char *key);
