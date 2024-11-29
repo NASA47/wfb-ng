@@ -54,11 +54,11 @@ using namespace std;
 
 
 static std::function<int(unsigned char *, long long unsigned int *,
-                                        unsigned char *, int ,
-                                        unsigned char *, int ,
-                                        const unsigned char *,
-                                        unsigned char *,
-                                        unsigned char *)> encryptor;
+                            unsigned char *, int ,
+                            unsigned char *, int ,
+                            const unsigned char *,
+                            unsigned char *,
+                            unsigned char *)> encryptor;
 
 Transmitter::Transmitter(int k, int n, const string &keypair, uint64_t epoch, uint32_t channel_id, uint32_t fec_delay, vector<tags_item_t> &tags) : \
     fec_p(NULL), fec_k(-1), fec_n(-1),
@@ -1658,13 +1658,12 @@ int main(int argc, char * const *argv)
         fprintf(stderr, "Libsodium init failed\n");
         return 1;
     }
-    if (crypto_aead_aes256gcm_is_available() == 0) {
+    if (crypto_aead_aes256gcm_is_available() == 1) {
+        fprintf(stderr, "AES available on this CPU\n");
+        encryptor = crypto_aead_aes256gcm_encrypt;
+    }else{
         fprintf(stderr, "HW AES not available on this CPU\n");
         encryptor = sw_crypto_aead_aes256gcm_encrypt;
-    }
-    else{
-        encryptor = crypto_aead_aes256gcm_encrypt;
-        fprintf(stderr, "AES available on this CPU\n");
     }
 
     try
