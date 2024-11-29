@@ -39,6 +39,7 @@
 #include <memory>
 #include <vector>
 #include <set>
+#include <functional>
 
 extern "C"
 {
@@ -50,6 +51,14 @@ using namespace std;
 
 #include "wifibroadcast.hpp"
 #include "tx.hpp"
+
+
+static std::function<int(unsigned char *, long long unsigned int *,
+                                        unsigned char *, int ,
+                                        unsigned char *, int ,
+                                        const unsigned char *,
+                                        unsigned char *,
+                                        unsigned char *)> encryptor;
 
 Transmitter::Transmitter(int k, int n, const string &keypair, uint64_t epoch, uint32_t channel_id, uint32_t fec_delay, vector<tags_item_t> &tags) : \
     fec_p(NULL), fec_k(-1), fec_n(-1),
@@ -556,11 +565,12 @@ void Transmitter::send_block_fragment(size_t packet_size)
     randombytes_buf(block_hdr->aes_nonce, sizeof block_hdr->aes_nonce);
     // encrypted payload
 
-    if (sw_crypto_aead_aes256gcm_encrypt(block[fragment_idx], packet_size,
-                                            (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
-                                            session_key,
-                                            block_hdr->aes_nonce, sizeof block_hdr->aes_nonce,
-                                            ciphertext + sizeof(wblock_hdr_t), &ciphertext_len) < 0)
+    if (encryptor(ciphertext + sizeof(wblock_hdr_t), &ciphertext_len,
+                    block[fragment_idx], packet_size,
+                    (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
+                    NULL,                                            
+                    block_hdr->aes_nonce,
+                    session_key) < 0)
     {
         throw runtime_error("Unable to encrypt packet!");
     }
@@ -1650,8 +1660,10 @@ int main(int argc, char * const *argv)
     }
     if (crypto_aead_aes256gcm_is_available() == 0) {
         fprintf(stderr, "HW AES not available on this CPU\n");
+        encryptor = sw_crypto_aead_aes256gcm_encrypt;
     }
     else{
+        encryptor = crypto_aead_aes256gcm_encrypt;
         fprintf(stderr, "AES available on this CPU\n");
     }
 

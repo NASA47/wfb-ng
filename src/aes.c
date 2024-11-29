@@ -1,10 +1,11 @@
 #include "aes.h"
 
-int sw_crypto_aead_aes256gcm_encrypt(unsigned char *plaintext, int plaintext_len,
+int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsigned int *ciphertext_len,
+                                        unsigned char *plaintext, int plaintext_len,
                                         unsigned char *aad, int aad_len,
-                                        unsigned char *key,
-                                        unsigned char *iv, int iv_len,
-                                        unsigned char *ciphertext, long long unsigned int *ciphertext_len)
+                                        const unsigned char *nsec,
+                                        unsigned char *iv,
+                                        unsigned char *key)
 {
     EVP_CIPHER_CTX *ctx;
 
@@ -27,14 +28,14 @@ int sw_crypto_aead_aes256gcm_encrypt(unsigned char *plaintext, int plaintext_len
         return -1;
     }
 
-    /*
-     * Set IV length if default 12 bytes (96 bits) is not appropriate
-     */
-    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
-    {
-        ERR_print_errors_fp(stderr);
-        return -1;
-    }
+    // /*
+    //  * Set IV length if default 12 bytes (96 bits) is not appropriate
+    //  */
+    // if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL))
+    // {
+    //     ERR_print_errors_fp(stderr);
+    //     return -1;
+    // }
 
     /* Initialise key and IV */
     if(1 != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv))
