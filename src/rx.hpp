@@ -194,7 +194,7 @@ public:
     uint32_t count_b_outgoing;
 
 private:
-        Aggregator(const Aggregator&);
+    Aggregator(const Aggregator&);
     Aggregator& operator=(const Aggregator&);
 
     void init_fec(int k, int n);
