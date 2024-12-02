@@ -96,7 +96,7 @@ int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsign
 int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
                                         unsigned char *nsec,
                                         const unsigned char *ciphertext, unsigned long long ciphertext_len,
-                                        const unsigned char *aad, unsigned long long aad_len,                
+                                        const unsigned char *aad, unsigned long long aad_len,
                                         unsigned char *iv,
                                         unsigned char *key)
 {
@@ -104,9 +104,9 @@ int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long lon
     int len;
     int ret;
 
-    const int tag_len = 16;   
+    const int tag_len = 16;
     ciphertext_len -= tag_len;
-    
+
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
     {
@@ -176,7 +176,7 @@ int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long lon
         /* Verify failed */
         return -1;
     }
-    
+
     *plaintext_len += len;
 
     return 0;

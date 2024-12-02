@@ -560,7 +560,7 @@ void Transmitter::send_block_fragment(size_t packet_size)
 
     block_hdr->packet_type = WFB_PACKET_DATA;
     block_hdr->data_nonce = htobe64(((block_idx & BLOCK_IDX_MASK) << 8) + fragment_idx);
-    
+
     // generate AES nonce
     randombytes_buf(block_hdr->aes_nonce, sizeof block_hdr->aes_nonce);
     // encrypted payload
@@ -568,13 +568,13 @@ void Transmitter::send_block_fragment(size_t packet_size)
     if (encryptor(ciphertext + sizeof(wblock_hdr_t), &ciphertext_len,
                     block[fragment_idx], packet_size,
                     (uint8_t*)block_hdr, sizeof(wblock_hdr_t),
-                    NULL,                                            
+                    NULL,
                     block_hdr->aes_nonce,
                     session_key) < 0)
     {
         throw runtime_error("Unable to encrypt packet!");
     }
-    
+
     inject_packet(ciphertext, sizeof(wblock_hdr_t) + ciphertext_len);
 }
 

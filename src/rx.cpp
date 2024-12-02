@@ -54,7 +54,7 @@ using namespace std;
 static std::function<int(unsigned char *, unsigned long long *,
                             unsigned char *,
                             const unsigned char *, unsigned long long,
-                            const unsigned char *, unsigned long long,                
+                            const unsigned char *, unsigned long long,
                             unsigned char *,
                             unsigned char *)> decryptor;
 
@@ -1101,7 +1101,7 @@ int main(int argc, char* const *argv)
     {
         fprintf(stderr, "Libsodium init failed\n");
         return 1;
-    }    
+    }
     if (crypto_aead_aes256gcm_is_available() == 1) {
         fprintf(stderr, "AES available on this CPU\n");
         decryptor = crypto_aead_aes256gcm_decrypt;
