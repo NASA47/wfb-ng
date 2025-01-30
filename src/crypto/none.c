@@ -1,23 +1,28 @@
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <string.h>
+#include "none.h"
 
-enum
-{
-    AES_SUCCESS = 0,
-    AES_FAIL = -1,
-};
-
-int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsigned int *ciphertext_len,
+int none_encrypt(unsigned char *ciphertext, long long unsigned int *ciphertext_len,
                                         unsigned char *plaintext, int plaintext_len,
                                         unsigned char *aad, int aad_len,
                                         const unsigned char *nsec,
                                         unsigned char *iv,
-                                        unsigned char *key);
-int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
+                                        unsigned char *key)
+{
+    *ciphertext_len = plaintext_len;
+    memcpy(ciphertext, plaintext, plaintext_len);
+
+    return NONE_SUCCESS;
+}
+
+
+int none_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
                                         unsigned char *nsec,
                                         const unsigned char *ciphertext, unsigned long long ciphertext_len,
                                         const unsigned char *aad, unsigned long long aad_len,
                                         unsigned char *iv,
-                                        unsigned char *key);
+                                        unsigned char *key)
+{
+    *plaintext_len = ciphertext_len;
+    memcpy(plaintext, ciphertext, ciphertext_len);
+
+    return NONE_SUCCESS;
+}
