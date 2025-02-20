@@ -14,7 +14,7 @@ static void handle_errors(EVP_CIPHER_CTX *ctx)
     EVP_CIPHER_CTX_free(ctx);
 }
 
-int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsigned int *ciphertext_len,
+int openssl_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsigned int *ciphertext_len,
                                         unsigned char *plaintext, int plaintext_len,
                                         unsigned char *aad, int aad_len,
                                         const unsigned char *nsec,
@@ -101,7 +101,7 @@ int sw_crypto_aead_aes256gcm_encrypt(unsigned char *ciphertext, long long unsign
 }
 
 
-int sw_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
+int openssl_crypto_aead_aes256gcm_decrypt(unsigned char *plaintext, unsigned long long *plaintext_len,
                                         unsigned char *nsec,
                                         const unsigned char *ciphertext, unsigned long long ciphertext_len,
                                         const unsigned char *aad, unsigned long long aad_len,

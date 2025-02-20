@@ -44,7 +44,8 @@
 extern "C"
 {
 #include "fec.h"
-#include "aes.h"
+#include "crypto/aes.h"
+#include "crypto/none.h"
 }
 
 using namespace std;
@@ -1657,12 +1658,26 @@ int main(int argc, char * const *argv)
         WFB_ERR("Libsodium init failed\n");
         return 1;
     }
-    if (crypto_aead_aes256gcm_is_available() == 1) {
-        fprintf(stderr, "AES available on this CPU\n");
+
+    if (0 == strcmp(CIPHER, "chacha"))
+    {
+        fprintf(stdout, "ChaCha encryption\n");
+        encryptor = crypto_aead_chacha20poly1305_encrypt;
+    }
+    else if (0 == strcmp(CIPHER, "none"))
+    {
+        fprintf(stdout, "none encryption\n");
+        encryptor = none_encrypt;
+    }
+    else if (crypto_aead_aes256gcm_is_available() == 1)
+    {
+        fprintf(stdout, "AES encryption\n");
         encryptor = crypto_aead_aes256gcm_encrypt;
-    }else{
-        fprintf(stderr, "HW AES not available on this CPU\n");
-        encryptor = sw_crypto_aead_aes256gcm_encrypt;
+    }
+    else
+    {
+        fprintf(stdout, "OpenSSL AES encryption\n");
+        encryptor = openssl_crypto_aead_aes256gcm_encrypt;
     }
 
     try

@@ -20,7 +20,8 @@ STDEB ?= "git+https://github.com/svpcom/stdeb"
 export VERSION COMMIT SOURCE_DATE_EPOCH
 
 _LDFLAGS := $(LDFLAGS) -lrt -lsodium -lcrypto
-_CFLAGS := $(CFLAGS) -Wall -O2 -fno-strict-aliasing -DWFB_VERSION='"$(VERSION)-$(shell /bin/bash -c '_tmp=$(COMMIT); echo $${_tmp::8}')"'
+CIPHER?=aes
+_CFLAGS := $(CFLAGS) -Wall -O2 -fno-strict-aliasing -DCIPHER=\"$(CIPHER)\" -DWFB_VERSION='"$(VERSION)-$(shell /bin/bash -c '_tmp=$(COMMIT); echo $${_tmp::8}')"'
 
 all: all_bin gs.key test
 
@@ -39,10 +40,10 @@ src/%.o: src/%.c src/*.h
 src/%.o: src/%.cpp src/*.hpp src/*.h
 	$(CXX) $(_CFLAGS) -std=gnu++11 -c -o $@ $<
 
-wfb_rx: src/rx.o src/radiotap.o src/fec.o src/wifibroadcast.o src/aes.o
+wfb_rx: src/rx.o src/radiotap.o src/fec.o src/wifibroadcast.o src/crypto/aes.o src/crypto/none.o
 	$(CXX) -o $@ $^ $(_LDFLAGS) -lpcap
 
-wfb_tx: src/tx.o src/fec.o src/wifibroadcast.o src/aes.o
+wfb_tx: src/tx.o src/fec.o src/wifibroadcast.o src/crypto/aes.o src/crypto/none.o
 	$(CXX) -o $@ $^ $(_LDFLAGS)
 
 wfb_keygen: src/keygen.o
@@ -65,7 +66,7 @@ rpm:  all_bin $(ENV)
 deb:  all_bin $(ENV)
 	rm -rf deb_dist
 	$$(PATH=$(ENV)/bin:$(ENV)/local/bin:$(PATH) which python3) ./setup.py --command-packages=stdeb.command bdist_deb
-	rm -rf wfb_ng.egg-info/ wfb-ng-$(VERSION).tar.gz
+	rm -rf wfb_ng.egg-info/ wfb_ng-$(VERSION).tar.gz
 
 bdist: all_bin
 	rm -rf dist
@@ -82,7 +83,7 @@ pylint:
 	pylint --disable=R,C wfb_ng/*.py
 
 clean:
-	rm -rf env wfb_rx wfb_tx wfb_tx_cmd wfb_tun wfb_keygen dist deb_dist build wfb_ng.egg-info wfb-ng-*.tar.gz _trial_temp *~ src/*.o
+	rm -rf env wfb_rx wfb_tx wfb_tx_cmd wfb_tun wfb_keygen dist deb_dist build wfb_ng.egg-info wfb-ng-*.tar.gz _trial_temp *~ src/*.o src/crypto/*.o
 
 deb_docker:  /opt/qemu/bin
 	@if ! [ -d /opt/qemu ]; then echo "Docker cross build requires patched QEMU!\nApply ./scripts/qemu/qemu.patch to qemu-7.2.0 and build it:\n  ./configure --prefix=/opt/qemu --static --disable-system && make && sudo make install"; exit 1; fi
